@@ -47,6 +47,8 @@ void DGDB::runConnection(int Pconnection)
       }
       //buffer = julio01
       n = read(Pconnection, buffer, s);
+        cout << buffer << endl;
+
       if (n < s)
       {
         perror("ERROR reading size\n");
@@ -55,13 +57,12 @@ void DGDB::runConnection(int Pconnection)
       {
         int r;
         //s -> como indice ?
-        if (buffer[s - 1] == '0') // no existen relaciones
+        if (buffer[s - 2] == '0') // no existen relaciones
         {
           std::cout << "No se envio relaciones" << std::endl;
-          buffer[s - 1] = '\0';
         }
         // calcula la cantidad de relaciones
-        else// if (buffer[s - 1] - '0' > 0)
+        else //if (buffer[s - 1] - '0' > 0)
         { // exite almenos una relacion
           existeRelaciones = true;
           n = read(Pconnection, bufferB, 3);
@@ -73,15 +74,18 @@ void DGDB::runConnection(int Pconnection)
           std::cout << "nodeB:" << bufferB << std::endl;
         }
 
-        if (buffer[s - 2] == '0') // no existen atributos
+        if (buffer[s - 1] == '0') // no existen atributos
         {
           std::cout << "No se envio atributos" << std::endl;
-          buffer[s - 2] = '\0';
+          buffer[s - 1] = '\0';
         }
         //existen atributos: decodificar atributos
         else
         {
-          std::size_t number_atributes = buffer[s - 2] - '0';
+          cout << "se enviaron atributos" << endl;
+          existeAtributos = true;
+          
+          std::size_t number_atributes = buffer[s - 1] - '0';
           char attrBuffer[1024], valueBuffer[1024];
           
           for(std::size_t i = 0; i < number_atributes; ++i){
@@ -134,8 +138,8 @@ void DGDB::runConnection(int Pconnection)
           }
           else if (!existeRelaciones && existeAtributos)
           {
-            
-            createNodeAttrite(data, socketCliente, storageAttrValue);
+            cout << "entre" << endl;
+            createNodeAttrite(data, socketRepositories[r], storageAttrValue);
           }
           else if (!existeRelaciones && !existeAtributos)
           {
@@ -424,6 +428,12 @@ void DGDB::createNode(string name, int conn)
   }
 }
 
+
+void DGDB::setNodeAttrite(string name, const std::map<std::string, std::string>& storageAttrValue)
+{
+  createNodeAttrite(name, socketCliente, storageAttrValue);
+}
+
  void DGDB::createNodeAttrite(string name,int conn, const std::map<std::string, std::string>& storageAttrValue)
  {
    // attributes are optional  
@@ -433,13 +443,15 @@ void DGDB::createNode(string name, int conn)
       char value_attribute[255]; // VB        Julio*/
     char tamano[4];
     sprintf(tamano, "%03d", name.length());
+    
     string msg; 
     string tmp = tamano; //005
     msg = "C" + tmp + name + "0" + std::to_string(storageAttrValue.size());
-    
-   //Concatenar msg=C005Julios02DNI7219..
-    for (auto item : storageAttrValue)
-      msg += fixToBytes(item.first, 3) + item.first + fixToBytes(item.second, 3) + item.second;
+    //Concatenar msg=C005Julios02DNI7219..
+    for (auto item : storageAttrValue){
+      msg += fixToBytes(std::to_string(item.first.length()), 3) + item.first 
+                  + fixToBytes(std::to_string(item.second.length()), 3) + item.second;
+    }
     
     int n;
     std::cout << ">> Paquete :" << msg << '\n';
@@ -453,7 +465,7 @@ void DGDB::createNode(string name, int conn)
     }
     else if (n > 0 && n != msg.length())
     {
-      /*Code zzz olor a mierdaaaaaa*/
+      /**/
     }
  }
 

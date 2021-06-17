@@ -1,9 +1,16 @@
 g++ -std=c++0x -pthread -o dgdb.exe  main.cpp DGDB.cpp  -I.
 
-Ejecuta los programas en este orden 
+Ejecuta los programas en este orden
+CREATE ONLY ONE NODE 
 ./dgdb.exe S
-./dgdb.exe R
-./dgdb.exe R
-./dgdb.exe R
+./dgdb.exe R 8000
+./dgdb.exe R 9000
+./dgdb.exe R 10000
 ./dgdb.exe C "UCSP"
+CREATE ONLY ONE NODE WITH ATTRIBUTES
+./dgdb.exe S
+./dgdb.exe R 8000
+./dgdb.exe R 9000
+./dgdb.exe R 10000
+./dgdb.exe C "JULIO" "EDAD" "50" 8000
 

@@ -10,8 +10,19 @@ int main(int argc, char *argv[])
     if (argv[1][0] == 'C'){
         db.setMode('C');
         db.setClient();
+
         //db.setNode(argv[2]);
-        db.setRelation(argv[2],argv[3]);
+        //db.setRelation(argv[2],argv[3]);
+
+        //if(std::string(argv[2]) == "3")
+        std::map<std::string, std::string> atributos;
+        
+        for(int i = 3; i < argc - 1; i += 2)
+        {
+            std::cout << argv[i] << " = " << argv[i+1] << std::endl;
+            atributos[argv[i]] = argv[i + 1];
+        }
+        db.setNodeAttrite(argv[2], atributos);
     }
     else if (argv[1][0] == 'S'){
         db.setMode('S');
