@@ -10,11 +10,12 @@ void DGDB::runConnection(int Pconnection)
   char buffer[1024];
   char bufferB[1024];
   connections[Pconnection] = "";
-  string data;
+  std::string data;
   bool existeRelaciones = false;
   bool existeAtributos = false;
+  std::map<std::string, std::string> storageAttrValue;
 
-  cout << "wwww" << endl;
+  std::cout << "wwww" << std::endl;
   while (server || repository)
   {
     n = read(Pconnection, buffer, 1);
@@ -29,7 +30,7 @@ void DGDB::runConnection(int Pconnection)
     }
     if (buffer[0] == 'C')
     {
-      cout << "Action:C\n";
+      std::cout << "Action:C\n";
       n = read(Pconnection, buffer, 3);
       if (n < 3)
       {
@@ -38,8 +39,13 @@ void DGDB::runConnection(int Pconnection)
       else
       {
         buffer[n + 1] = '\0';
+        //s = name_node_size + 2
+        //Buffer = 005
+        //5+2 = 7
+        //2B <- number_of_attributes(1B) y number_of_relations(1B)
         s = atoi(buffer) + 2;
       }
+      //buffer = julio01
       n = read(Pconnection, buffer, s);
       if (n < s)
       {
@@ -48,12 +54,14 @@ void DGDB::runConnection(int Pconnection)
       else
       {
         int r;
+        //s -> como indice ?
         if (buffer[s - 1] == '0') // no existen relaciones
         {
-          cout << "No se envio relaciones" << endl;
+          std::cout << "No se envio relaciones" << std::endl;
           buffer[s - 1] = '\0';
         }
-        else if (buffer[s - 1] - '0' > 0)
+        // calcula la cantidad de relaciones
+        else// if (buffer[s - 1] - '0' > 0)
         { // exite almenos una relacion
           existeRelaciones = true;
           n = read(Pconnection, bufferB, 3);
@@ -62,53 +70,83 @@ void DGDB::runConnection(int Pconnection)
           n = read(Pconnection, bufferB, ss);
           bufferB[n] = '\0';
 
-          cout << "nodeB:" << bufferB << endl;
+          std::cout << "nodeB:" << bufferB << std::endl;
         }
+
         if (buffer[s - 2] == '0') // no existen atributos
         {
-          cout << "No se envio atributos" << endl;
+          std::cout << "No se envio atributos" << std::endl;
           buffer[s - 2] = '\0';
         }
-        cout << "data:[" << buffer << "]" << endl;
+        //existen atributos: decodificar atributos
+        else
+        {
+          std::size_t number_atributes = buffer[s - 2] - '0';
+          char attrBuffer[1024], valueBuffer[1024];
+          
+          for(std::size_t i = 0; i < number_atributes; ++i){
+            attrBuffer[read(Pconnection, attrBuffer, 3)] = '\0';
+            uint8_t name_attribute_size = atoi(attrBuffer);
+            attrBuffer[read(Pconnection, attrBuffer, name_attribute_size)] = '\0';
+        
+            valueBuffer[read(Pconnection, valueBuffer, 3)] = '\0';          
+            uint8_t val_attribute_size = atoi(valueBuffer);
+            valueBuffer[read(Pconnection, valueBuffer, val_attribute_size)] = '\0';  
+          
+            storageAttrValue[std::string(attrBuffer)] = std::string(valueBuffer);
+          }
+          
+        }
+
+        //--------------------------------------
+
+
+        //std::cout << "data:[" << buffer << "]" << std::endl;
+        //buffer = julio01
         data = buffer;
+        data.pop_back();
+        data.pop_back();
+        // data tiene el nombre del nodo
+
         if (socketRepositories.size() > 1)
         {
           // enviar al  Repository
           // determinar que repository
           if (socketRepositories.size() < 2)
           {
-            cout << "Repository has not been attached." << endl;
+            std::cout << "Repository has not been attached." << std::endl;
             return;
           }
           else
             r = buffer[0] % (socketRepositories.size() - 1);
           r++;
-          cout << "xxxx--:" << socketRepositories.size() << endl;
-          cout << "xxxx-r:" << r << endl;
-          cout << "xxxx-s:" << socketRepositories[r] << endl;
-          cout << "xxxx-d:" << data << endl;
+          std::cout << "xxxx--:" << socketRepositories.size() << std::endl;
+          std::cout << "xxxx-r:" << r << std::endl;
+          std::cout << "xxxx-s:" << socketRepositories[r] << std::endl;
+          std::cout << "xxxx-d:" << data << std::endl;
           if (existeRelaciones && !existeAtributos)
           {
             createRelation(data, bufferB, socketRepositories[r]);
           }
           else if (existeRelaciones && existeAtributos)
           {
-            //
+            //createAtri();
           }
           else if (!existeRelaciones && existeAtributos)
           {
-            //
+            
+            createNodeAttrite(data, socketCliente, storageAttrValue);
           }
           else if (!existeRelaciones && !existeAtributos)
           {
             createNode(data, socketRepositories[r]);
           }
 
-          cout << "xxxx" << endl;
+          std::cout << "xxxx" << std::endl;
         }
         else if (repository)
         {
-          cout << "Store:" << data << "-" << bufferB << endl;
+          std::cout << "Store:" << data << "-" << bufferB << std::endl;
         }
       }
     }
@@ -145,7 +183,7 @@ void DGDB::runConnection(int Pconnection)
         if (repository)
         {
           socketRepositories.push_back(socketRepository);
-          cout << "Repository registed." << endl;
+          std::cout << "Repository registed." << std::endl;
         }
         else
           perror("ERROR no se pudo registrar Repositorio\n");
@@ -185,7 +223,7 @@ void DGDB::runServer()
   }
   else if (mode == 'R')
   {
-    cout << "RRRRR" << endl;
+    std::cout << "RRRRR" << std::endl;
     std::thread runThread(&DGDB::runRepository, this);
     runThread.join();
   }
@@ -269,8 +307,7 @@ void DGDB::closeServer()
 
 void DGDB::setRepository()
 {
-
-  cout << "setRepository" << endl;
+  std::cout << "setRepository" << std::endl;
   int Res;
   socketRepository = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
   if (-1 == socketRepository)
@@ -340,7 +377,7 @@ char node_relations[255];// VB
   //C004julio01004UCSP
 
   int n;
-  //cout << "*" << buffer.c_str() << "*" << "endl";
+  //std::cout << "*" << buffer.c_str() << "*" << "std::endl";
   n = write(conn, buffer.c_str(), buffer.length());
   if (n < 0)
   {
@@ -359,22 +396,21 @@ char node_relations[255];// VB
 
 void DGDB::createNode(string name, int conn)
 {
-
-  /*
-int action; // 1B CRUD                  C
-int name_node_size;// 3B                3
-char name_node[255];// VB               15151515 (DNI)
-int number_of_attributes; // 2B         1
-int number_of_relations;  // 3B         0
-*/
-
+      /*
+    int action; // 1B CRUD                  C
+    int name_node_size;// 3B                3
+    char name_node[255];// VB               15151515 (DNI)
+    int number_of_attributes; // 2B         1
+    int number_of_relations;  // 3B         0
+    */
+  //name=julio
   char tamano[4];
   sprintf(tamano, "%03d", name.length());
-  string buffer;
-  string tmp = tamano;
+  string buffer; 
+  string tmp = tamano; //005
   buffer = "C" + tmp + name + "00";
   int n;
-  //cout << "*" << buffer.c_str() << "*" << "endl";
+  //std::cout << "*" << buffer.c_str() << "*" << "std::endl";
   n = write(conn, buffer.c_str(), buffer.length());
   if (n < 0)
   {
@@ -388,6 +424,39 @@ int number_of_relations;  // 3B         0
   }
 }
 
+ void DGDB::createNodeAttrite(string name,int conn, const std::map<std::string, std::string>& storageAttrValue)
+ {
+   // attributes are optional  
+      /*int name_attribute_size;  //  3B        13
+      char name_attribute[255]; //  VB        Primer Nombre
+      int value_attribute_size; //  3B        5
+      char value_attribute[255]; // VB        Julio*/
+    char tamano[4];
+    sprintf(tamano, "%03d", name.length());
+    string msg; 
+    string tmp = tamano; //005
+    msg = "C" + tmp + name + "0" + std::to_string(storageAttrValue.size());
+    
+   //Concatenar msg=C005Julios02DNI7219..
+    for (auto item : storageAttrValue)
+      msg += fixToBytes(item.first, 3) + item.first + fixToBytes(item.second, 3) + item.second;
+    
+    int n;
+    std::cout << ">> Paquete :" << msg << '\n';
+
+    n = write(conn, msg.c_str(), msg.length());
+    if (n < 0)
+    {
+      perror("error listen failed");
+      close(socketCliente);
+      exit(EXIT_FAILURE);
+    }
+    else if (n > 0 && n != msg.length())
+    {
+      /*Code zzz olor a mierdaaaaaa*/
+    }
+ }
+
 void DGDB::registerRepository()
 {
 
@@ -396,66 +465,66 @@ int action; // X
 int port; // 5B
 char ip[16] VB
 */
-  cout << ip << endl;
+  std::cout << ip << std::endl;
   string buffer;
   char vip[17];
   char vport[6];
   sprintf(vport, "%05d", port);
   vport[5] = '\0';
   sprintf(vip, "%016s", ip.c_str());
-  cout << vip << endl;
+  std::cout << vip << std::endl;
   string sport = vport;
   string sip = vip;
   buffer = "R" + sport + sip;
-  cout << "*" << buffer.c_str() << "*" << endl;
+  std::cout << "*" << buffer.c_str() << "*" << std::endl;
   // Set conn to Main
   int Res;
   int socketMain = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
   if (-1 == socketMain)
   {
-    cout << "cannot create socket" << endl;
+    std::cout << "cannot create socket" << std::endl;
     exit(EXIT_FAILURE);
   }
   //memset(&stSockAddr, 0, sizeof(struct sockaddr_in));
-  cout << "*1*" << endl;
+  std::cout << "*1*" << std::endl;
   stSockAddr.sin_family = AF_INET;
   stSockAddr.sin_port = htons(mainPort);
   Res = inet_pton(AF_INET, mainIp.c_str(), &stSockAddr.sin_addr);
   if (0 > Res)
   {
-    cout << "error: first parameter is not a valid address family" << endl;
+    std::cout << "error: first parameter is not a valid address family" << std::endl;
     close(socketMain);
     exit(EXIT_FAILURE);
   }
   else if (0 == Res)
   {
-    cout << "char string (second parameter does not contain valid ipaddress" << endl;
+    std::cout << "char string (second parameter does not contain valid ipaddress" << std::endl;
     close(socketMain);
     exit(EXIT_FAILURE);
   }
-  cout << "*2*" << endl;
+  std::cout << "*2*" << std::endl;
   Res == connect(socketMain, (const struct sockaddr *)&stSockAddr, sizeof(struct sockaddr_in));
   if (Res == -1)
   {
-    cout << "connect failed" << endl;
+    std::cout << "connect failed" << std::endl;
     close(socketMain);
     exit(EXIT_FAILURE);
   }
   //
-  cout << "*3*" << endl;
+  std::cout << "*3*" << std::endl;
   int n = write(socketMain, buffer.c_str(), buffer.length());
-  cout << "*4*" << endl;
+  std::cout << "*4*" << std::endl;
   if (n < 0)
   {
-    cout << "error listen failed" << endl;
+    std::cout << "error listen failed" << std::endl;
     close(socketMain);
     exit(EXIT_FAILURE);
   }
   else if (n > 0 && n != buffer.length())
   {
-    cout << "Registing Repository:[" << buffer << "]" << endl;
+    std::cout << "Registing Repository:[" << buffer << "]" << std::endl;
   }
-  cout << n << endl;
+  std::cout << n << std::endl;
 }
 
 void DGDB::runRepository()
@@ -475,7 +544,7 @@ void DGDB::runRepository()
 }
 void DGDB::connMasterRepository(int pPort, string pIp)
 {
-  cout << pPort << "-" << pIp << endl;
+  std::cout << pPort << "-" << pIp << std::endl;
   int Res;
   socketRepository = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
   if (-1 == socketRepository)

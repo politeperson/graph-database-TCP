@@ -80,7 +80,7 @@ public:
     void createRelation(string nameA,string nameB,int conn=0);
     ///  pritocolo
     void createNode(string name,int conn=0);
-    void createNodeAttrite(string name,int conn,string attriteName,string attriteValue);
+    void createNodeAttrite(string name,int conn, const std::map<std::string, std::string>& storageAttrValue);
 
 };
 
