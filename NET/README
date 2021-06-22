@@ -12,5 +12,6 @@ CREATE ONLY ONE NODE WITH ATTRIBUTES
 ./dgdb.exe R 8000
 ./dgdb.exe R 9000
 ./dgdb.exe R 10000
-./dgdb.exe C "JULIO" "EDAD" "50" 8000
+./dgdb.exe C "JULIO" ["EDAD" "50" "Profesion" "Profesor"] ["NodoB" "NodoC"]
+
 
