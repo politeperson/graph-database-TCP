@@ -77,12 +77,13 @@ public:
     // CRUD DGDB
     void setNode(string name);
     void setRelation(string nameA,string nameB);
-    void setNodeAttrite(string name, const std::map<std::string, std::string>& storageAttrValue);
+    void setNodeAttrite(string name, std::map<std::string, std::string>& storageAttrValue);
+    void setCreate(string &name, map<string, string> &atributos, vector<string> &relations);
     void createRelation(string nameA,string nameB,int conn=0);
     ///  pritocolo
     void createNode(string name,int conn=0);
     void createNodeAttrite(string name,int conn, const std::map<std::string, std::string>& storageAttrValue);
-
+    void createNodeAtributeRelation(string &name, map<string, string> &atributos, vector<string> &relations, int conn);
 };
 
 #endif
